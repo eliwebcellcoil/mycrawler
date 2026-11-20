@@ -41,3 +41,10 @@ assert.ok(rd('about/index.html').includes('#top'));
 assert.ok(rd('s/style.css').includes('url("../img/a.png")'));
 assert.ok(rd('s/style.css').includes('@import "more.css"'));
 console.log('OK');
+// unquoted attributes
+import { transformHtml } from '../rewrite.js';
+const seen = [];
+const o = transformHtml('<a href=a.html>x</a><img src=i.png>', (r) => { seen.push(r); return 'X/' + r; });
+assert.deepEqual(seen, ['a.html', 'i.png']);
+assert.ok(o.includes('href="X/a.html"') && o.includes('src="X/i.png"'), o);
+console.log('OK unquoted');
