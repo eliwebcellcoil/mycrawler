@@ -1,0 +1,28 @@
+name: Mirror site
+on:
+  workflow_dispatch:
+    inputs:
+      url: { description: 'Site URL', required: true }
+      max_pages: { description: 'Max pages', default: '500' }
+      depth: { description: 'Max depth', default: '10' }
+      subdomains: { description: 'Include subdomains', type: boolean, default: false }
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Crawl
+        env:
+          URL: ${{ inputs.url }}
+          MAX: ${{ inputs.max_pages }}
+          DEPTH: ${{ inputs.depth }}
+          SUB: ${{ inputs.subdomains }}
+        run: |
+          args=""; [ "$SUB" = "true" ] && args="--subdomains"
+          node cli.js "$URL" mirror --max-pages "$MAX" --depth "$DEPTH" $args
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-mirror
+          path: mirror
