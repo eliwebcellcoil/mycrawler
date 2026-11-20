@@ -1,0 +1,8 @@
+{
+  "name": "mycrawler",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "containerEnv": { "HOST": "0.0.0.0", "PORT": "3000" },
+  "forwardPorts": [3000],
+  "portsAttributes": { "3000": { "label": "mycrawler", "onAutoForward": "openBrowser" } },
+  "postAttachCommand": "nohup node server.js > /tmp/mycrawler.log 2>&1 &"
+}

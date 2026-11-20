@@ -15,3 +15,6 @@ Actions - Mirror site - Run workflow - להזין URL. המירור יורד כ-
 
 ## GitHub Pages
 Settings - Pages - Source: GitHub Actions. הדף https://eliwebcellcoil.github.io/mycrawler/ מפעיל סריקה (דורש token עם Actions: write) והמירור האחרון מתפרסם תחת /mirror/.
+
+## הרצה ב-GitHub Codespaces (בלי Pages)
+Code - Codespaces - Create codespace. האתר עולה אוטומטית על פורט 3000 ונפתח בדפדפן.
