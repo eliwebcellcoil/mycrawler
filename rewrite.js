@@ -22,7 +22,7 @@ export function transformCss(css, fn) {
   });
 }
 
-const ATTR = /(\s(?:href|src|data-src|data-original|data-lazy-src|poster|srcset|data-srcset|data-bg)\s*=\s*)("([^"]*)"|'([^']*)')/gi;
+const ATTR = /(\s(?:href|src|data-src|data-original|data-lazy-src|poster|srcset|data-srcset|data-bg)\s*=\s*)("([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
 
 export function transformHtml(html, fn) {
   html = html.replace(/\s+integrity\s*=\s*("[^"]*"|'[^']*')/gi, '');
@@ -30,10 +30,10 @@ export function transformHtml(html, fn) {
   return html.replace(/<([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g, (m, tag, attrs) => {
     const t = tag.toLowerCase();
     const pageTag = t === 'a' || t === 'area' || t === 'iframe' || t === 'frame';
-    let out = attrs.replace(ATTR, (mm, pre, val, dq, sq) => {
+    let out = attrs.replace(ATTR, (mm, pre, val, dq, sq, uq) => {
       const name = pre.trim().replace(/\s*=\s*$/, '').toLowerCase();
-      const inner = decodeEnt(dq ?? sq);
-      const quote = dq !== undefined ? '"' : "'";
+      const inner = decodeEnt(dq ?? sq ?? uq);
+      const quote = sq !== undefined ? "'" : '"';
       const kind = pageTag && (name === 'href' || name === 'src') ? 'page' : 'asset';
       if (name === 'srcset' || name === 'data-srcset') {
         const res = inner.split(',').map((part) => {
