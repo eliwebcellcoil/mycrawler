@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mycrawler</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mut:#6b7280;--ac:#4f46e5;--bd:#e3e6ee}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1118;--card:#171b25;--tx:#e8eaf0;--mut:#8b93a5;--bd:#262c3a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
+input{width:100%;padding:10px;margin:4px 0 10px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:inherit;font:inherit}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;cursor:pointer}
+label{font-size:14px;color:var(--mut)}a{color:var(--ac)}#st{margin-top:10px}.chk{display:flex;gap:6px;align-items:center}.chk input{width:auto;margin:0}
+</style></head><body><main>
+<h1>mycrawler</h1>
+<form class="card" id="f">
+<label>כתובת האתר</label><input id="url" type="url" dir="ltr" required placeholder="https://example.com">
+<label>מקס' דפים</label><input id="max" type="number" value="500" min="1" max="5000">
+<label>עומק</label><input id="depth" type="number" value="10" min="0">
+<label class="chk"><input id="sub" type="checkbox">תתי-דומיינים</label><br>
+<label>GitHub token (הרשאת Actions: write, נשמר בדפדפן בלבד)</label><input id="tok" type="password" dir="ltr" required>
+<button>הרץ סריקה</button><div id="st"></div>
+</form>
+<div class="card"><a id="res" href="mirror/" target="_blank">פתח את המירור האחרון</a></div>
+</main><script>
+const R='eliwebcellcoil/mycrawler',$=i=>document.getElementById(i),H=t=>({Authorization:'Bearer '+t,Accept:'application/vnd.github+json'});
+try{$('tok').value=localStorage.tok||''}catch{}
+fetch('mirror/_report.json').then(r=>r.ok?r.json():null).then(j=>{if(j&&j.entry)$('res').href='mirror/'+j.entry.split('/').map(encodeURIComponent).join('/')}).catch(()=>{});
+$('f').onsubmit=async e=>{e.preventDefault();const t=$('tok').value;try{localStorage.tok=t}catch{}
+ $('st').textContent='שולח...';
+ const r=await fetch(`https://api.github.com/repos/${R}/actions/workflows/mirror.yml/dispatches`,{method:'POST',headers:H(t),body:JSON.stringify({ref:'main',inputs:{url:$('url').value,max_pages:$('max').value,depth:$('depth').value,subdomains:String($('sub').checked)}})});
+ if(!r.ok)return $('st').textContent='שגיאה '+r.status;
+ $('st').innerHTML=`הופעל. <a target="_blank" href="https://github.com/${R}/actions">מעקב ב-Actions</a>. בסיום (כדקה-שתיים) רענן ופתח את המירור.`};
+</script></body></html>

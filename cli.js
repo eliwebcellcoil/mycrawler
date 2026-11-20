@@ -17,5 +17,5 @@ c.on('log', console.log);
 let last = 0;
 c.on('progress', (s) => { if (Date.now() - last > 2000) { last = Date.now(); console.log(`pages=${s.pages} assets=${s.assets} queued=${s.queued} failed=${s.failed}`); } });
 const r = await c.run();
-await fs.writeFile(path.join(out, '_report.json'), JSON.stringify({ failures: r.failures, stats: r.stats }, null, 1));
+await fs.writeFile(path.join(out, '_report.json'), JSON.stringify({ entry: r.entry, failures: r.failures, stats: r.stats }, null, 1));
 console.log('done', r.stats);

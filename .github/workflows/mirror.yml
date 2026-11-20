@@ -5,15 +5,29 @@ on:
       url: { description: 'Site URL', required: true }
       max_pages: { description: 'Max pages', default: '500' }
       depth: { description: 'Max depth', default: '10' }
-      subdomains: { description: 'Include subdomains', type: boolean, default: false }
+      subdomains: { description: 'Include subdomains', default: 'false' }
+  push:
+    branches: [main]
+    paths: ['pages/**', '.github/workflows/mirror.yml']
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency: { group: pages, cancel-in-progress: false }
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - name: Prepare site
+        run: mkdir -p site && cp -r pages/. site/
       - name: Crawl
+        if: github.event_name == 'workflow_dispatch'
         env:
           URL: ${{ inputs.url }}
           MAX: ${{ inputs.max_pages }}
@@ -21,8 +35,14 @@ jobs:
           SUB: ${{ inputs.subdomains }}
         run: |
           args=""; [ "$SUB" = "true" ] && args="--subdomains"
-          node cli.js "$URL" mirror --max-pages "$MAX" --depth "$DEPTH" $args
+          node cli.js "$URL" site/mirror --max-pages "$MAX" --depth "$DEPTH" $args
       - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
         with:
           name: site-mirror
-          path: mirror
+          path: site/mirror
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+      - id: deploy
+        uses: actions/deploy-pages@v4
