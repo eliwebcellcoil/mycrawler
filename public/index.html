@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Site Mirror</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mut:#6b7280;--ac:#4f46e5;--bd:#e3e6ee;--ok:#16a34a;--er:#dc2626}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1118;--card:#171b25;--tx:#e8eaf0;--mut:#8b93a5;--bd:#262c3a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,sans-serif}
+main{max-width:820px;margin:0 auto;padding:24px 16px}
+h1{margin:0 0 16px}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
+input[type=url],input[type=number]{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:inherit;font:inherit}
+.row{display:flex;gap:8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+label{font-size:14px;color:var(--mut);display:block}.chk{display:flex;gap:6px;align-items:center;color:var(--tx)}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;cursor:pointer}
+button.sec{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+.bar{height:8px;background:var(--bd);border-radius:4px;overflow:hidden;margin:10px 0}.bar i{display:block;height:100%;background:var(--ac);width:0;transition:width .3s}
+.stats{display:flex;gap:16px;flex-wrap:wrap;font-size:14px}.cur{font-size:12px;color:var(--mut);direction:ltr;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#log{font:12px/1.4 monospace;max-height:140px;overflow:auto;color:var(--er);direction:ltr;text-align:left}
+.job{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--bd);align-items:center}
+.job a{color:var(--ac)}.u{direction:ltr;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--bd)}.done{color:var(--ok)}.error,.cancelled{color:var(--er)}
+</style>
+</head>
+<body><main>
+<h1>Site Mirror</h1>
+<form class="card" id="f">
+  <div class="row"><input type="url" name="url" placeholder="https://example.com" required dir="ltr"><button>סרוק</button></div>
+  <div class="grid">
+    <label>מקס' דפים<input type="number" name="maxPages" value="500" min="1"></label>
+    <label>עומק<input type="number" name="maxDepth" value="10" min="0"></label>
+    <label>מקביליות<input type="number" name="concurrency" value="6" min="1" max="20"></label>
+    <label>השהיה (ms)<input type="number" name="delayMs" value="0" min="0"></label>
+  </div>
+  <div class="grid">
+    <label class="chk"><input type="checkbox" name="includeSubdomains">תתי-דומיינים</label>
+    <label class="chk"><input type="checkbox" name="externalAssets" checked>נכסים חיצוניים (CDN)</label>
+    <label class="chk"><input type="checkbox" name="respectRobots" checked>כבד robots.txt</label>
+  </div>
+</form>
+<div class="card" id="live" hidden>
+  <div class="stats"><span>דפים: <b id="p">0</b></span><span>נכסים: <b id="a">0</b></span><span>בתור: <b id="q">0</b></span><span>שגיאות: <b id="e">0</b></span><span>נפח: <b id="b">0</b></span></div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="cur" id="cur"></div>
+  <div class="row" style="margin-top:10px"><button class="sec" id="cancel" type="button">בטל</button><a id="open" hidden><button type="button">פתח מירור</button></a></div>
+  <div id="log"></div>
+</div>
+<div class="card"><b>משימות קודמות</b><div id="jobs"></div></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);let cur=null,es=null;
+const mb=n=>(n/1048576).toFixed(1)+' MB';
+function show(s){$('p').textContent=s.pages||0;$('a').textContent=s.assets||0;$('q').textContent=s.queued||0;$('e').textContent=s.failed||0;$('b').textContent=mb(s.bytes||0);$('cur').textContent=s.current||'';
+ const t=(s.pages||0)+(s.assets||0)+(s.queued||0)+(s.failed||0);$('bar').style.width=t?Math.round(100*((s.pages||0)+(s.assets||0)+(s.failed||0))/t)+'%':'0'}
+function watch(id){cur=id;es&&es.close();$('live').hidden=false;$('open').hidden=true;$('log').textContent='';$('cancel').hidden=false;
+ es=new EventSource('/api/jobs/'+id+'/events');
+ es.addEventListener('progress',e=>show(JSON.parse(e.data)));
+ es.addEventListener('log',e=>{$('log').textContent+=JSON.parse(e.data)+'\n';$('log').scrollTop=1e9});
+ es.addEventListener('done',e=>{const m=JSON.parse(e.data);es.close();$('cancel').hidden=true;$('bar').style.width='100%';$('cur').textContent=m.status==='done'?'הסריקה הושלמה':m.status;
+  if(m.entry){$('open').href='/mirrors/'+id+'/'+m.entry.split('/').map(encodeURIComponent).join('/');$('open').target='_blank';$('open').hidden=false}list()})}
+async function list(){const js=await (await fetch('/api/jobs')).json();
+ $('jobs').innerHTML=js.map(j=>`<div class="job"><div><div class="u">${j.url}</div><span class="st ${j.status}">${j.status}</span> ${(j.stats.pages||0)} דפים</div>${j.entry?`<a target="_blank" href="/mirrors/${j.id}/${j.entry.split('/').map(encodeURIComponent).join('/')}">פתח</a>`:''}</div>`).join('')||'<div class="u">אין</div>'}
+$('f').onsubmit=async e=>{e.preventDefault();const d=new FormData(e.target),b={};
+ for(const k of ['url','maxPages','maxDepth','concurrency','delayMs'])b[k]=d.get(k);
+ for(const k of ['includeSubdomains','externalAssets','respectRobots'])b[k]=d.has(k);
+ const r=await fetch('/api/jobs',{method:'POST',body:JSON.stringify(b)});const j=await r.json();
+ if(!r.ok)return alert(j.error);watch(j.id);list()};
+$('cancel').onclick=()=>fetch('/api/jobs/'+cur+'/cancel',{method:'POST'});
+list();
+</script>
+</body></html>
